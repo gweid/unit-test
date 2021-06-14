@@ -907,7 +907,7 @@ test('slot', () => {
 
 
 
-#### 4-3-3、挂载第三方插件
+#### 4-3-3、挂载第三方插件 `localVue`
 
 在开发 `Vue` 应用的时候，经常用到第三方插件，例如：`Vue-Router`、`Vuex` 等等。
 
@@ -1318,4 +1318,139 @@ describe('TestRouter.vue', () => {
 - `toHaveBeenCalled`： 用来判断是否被触发
 
 
+
+### 4-8、测试 `Vuex`
+
+测试 `Vuex` 的方法主要有：
+
+- 单独测试 `store` 中的每一个部分：把 `store` 中的 `mutations`、`actions` 和`getters` 单独划分，分别进行测试
+- 组合测试 `store`：把 `store` 当做一个整体，测试`store`实例
+
+单独测试 `store` 中的每一部分的好处是：单元测试可以小而且聚焦，当一个单元测试用例失败时能够十分确切的知道哪里出错。缺点是：经常需要模拟 `Vuex` 的某些功能，而越多的模拟意味着越偏离实际，有时候很可能模拟错误而引入 `bug`
+组合测试 `store` 的好处是：这种方法更加健壮，因为测试过程中不需要重新编写、模拟 `Vuex` 的功能。
+
+
+
+#### 4-8-1、单独测试 `store`
+
+##### 测试 `getters`
+
+`getters` 是一个普通的函数，它始终返回一个值。所以测试 `getters` 非常简单，只需要断言 `getter` 函数的返回值即可
+
+```js
+// getters.js
+
+const getters = {
+  getName(state) {
+    return state.name
+  }
+}
+
+export default getters
+```
+
+测试用例：
+
+```js
+import getters from '../../src/store/getters'
+
+describe('testVuex', () => {
+  test('getters', () => {
+    const state = {
+      name: 'jack'
+    }
+
+    const { getName } = getters
+    expect(getName(state)).toBe('jack')
+  })
+})
+```
+
+
+
+##### 测试 `mutations`
+
+对于一个 `mutation` 而言，它只是一个函数。所以在测试的时候，只需要传递参数，然后期望`state`能正确输出即可
+
+```js
+// mutations.js
+
+const mutations = {
+  setName(state, payload) {
+    state.name = payload
+  }
+}
+
+export default mutations
+```
+
+测试用例：
+
+```js
+import mutations from '../../src/store/mutations'
+
+describe('testVuex', () => {
+  test('mutations', () => {
+    const state = {
+      name: 'jack'
+    }
+    const newName = 'mark'
+
+    const { setName } = mutations
+    setName(state, newName)
+    expect(state.name).toBe(newName)
+  })
+})
+```
+
+
+
+##### 测试 `actions`
+
+测试 `actions` 稍微复杂一些
+
+```js
+// actions.js
+
+const actions = {
+  setName({ commit }, payload) {
+    commit('setName', payload)
+  }
+}
+
+export default actions
+```
+
+测试用例：
+
+```js
+import actions from '../../src/store/actions'
+
+describe('testVuex', () => {
+  test('actions', () => {
+    const state = {
+      name: 'jack'
+    }
+    const newName = 'marry'
+    const context = {
+      commit: jest.fn()
+    }
+
+    const { setName } =  actions
+    setName(context, newName)
+    // commit('setName', payload)
+    // commit 被调用了，并且传入了两个参数：'setName' 和 newName
+    expect(context.commit).toHaveBeenCalledWith('setName', newName)
+  })
+})
+```
+
+- `expect(func).toHaveBeenCalled`： `func` 函数被调用
+- `expect(func).toHaveBeenCalledWith('name', 'age')`：`func` 函数被调用，并且传入两个参数
+
+
+
+#### 4-8-2、组合测试 `store`
+
+组合测试 `store` 需要注意的点是，使用 `createLocalVue()` 方法创建一个本地的 `Vue` 实例，而不是全局 `Vue` 上挂载的 `Vuex`，因为使用全局的 `Vue` 会导致单元测试修改了程序的 store
 
