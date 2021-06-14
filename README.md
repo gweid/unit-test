@@ -259,3 +259,255 @@ module.exports = {
 - `coverageDirectory`：测试报告存放位置
 - `collectCoverageFrom`：测试哪些文件和不测试哪些文件
 
+
+
+## 4、`Vue` 单元测试
+
+接下来将使用 `Vue Test Utils` + `jest` 进行单元测试。
+
+`Vue Test Utils` 是 `Vue.js` 官方的单元测试实用工具库，能够对我们编写的 `Vue` 组件进行测试，它包含一些辅助方法可以实现组件挂载、与组件交互以及断言组件输出等功能，让`Vue` 组件单元测试变得更加简单
+
+
+
+### 4-1、测试组件渲染输出
+
+
+
+#### 4-1-1、组件挂载测试
+
+在 `vue` 中，通过`import`引入组件，然后在`components`进行注册后就能使用；在单元测试中，使用`Vue Test Utils ` 的 `mount`或者 `shallowMount` 来进行挂载组件，两者的区别：
+
+- 对于不包含子组件的组件来说，两者是一样的
+- 区别在于，`shallowMount`只渲染组件本身，不会渲染子组件，但会保留子组件在组件中的存根
+- `mount` 会渲染整个组件树
+
+`mount`和 `shallowMount` 挂载组件，并返回一个包装器 wrapper，这个包装器里面除了包含 `vm` 实例，还包含了很多用于测试组件的属性和方法
+
+既然可以通过 `wrapper.vm` 拿到组件的 `vm` 实例，那么就意味着可以通过 `wrapper.vm` 访问到组件的 `props`、`data` 和 `methods` 等等
+
+
+
+例子，有组件：
+
+```js
+<template>
+  <div class="mount">
+    <p>哈哈哈哈</p>
+  </div>
+</template>
+<script>
+export default {
+  data() {
+    return {}
+  }
+}
+</script>
+```
+
+测试组件是否挂载：
+
+```js
+import { shallowMount } from '@vue/test-utils'
+import ComMount from '../../src/components/ComMount.vue'
+
+test('mount', () => {
+  const wrapper = shallowMount(ComMount)
+  // 测试组件是否被挂载
+  expect(wrapper.exists()).toBe(true)
+})
+```
+
+
+
+#### 4-1-2、组件文本测试
+
+有组件：
+
+```js
+<template>
+  <div class="mount">
+    <p>{{ msg }}</p>
+  </div>
+</template>
+<script>
+export default {
+  data() {
+    return {
+      msg: 'hello, test'
+    }
+  }
+}
+</script>
+```
+
+测试用例：
+
+```js
+import { shallowMount } from '@vue/test-utils'
+import ComMount from '../../src/components/ComMount.vue'
+
+test('text', () => {
+  const msg = 'hello, test'
+  const wrapper = shallowMount(ComMount)
+  expect(wrapper.text()).toBe(msg) // 严格相等，只能有一个 msg 文本
+  expect(wrapper.text()).toContain(msg) // 是否包含
+})
+```
+
+当组件不止一个 `msg` 文本的时候，可以使用 `toContain` 判断包含关系
+
+也可以通过 `wrapper.find` 找到对应的标签再判断【find 是一个 query 选择器】
+
+```js
+import { shallowMount } from '@vue/test-utils'
+import ComMount from '../../src/components/ComMount.vue'
+
+test('text', () => {
+  test('text', () => {
+    const wrapper = shallowMount(ComMount)
+    const msg = 'hello, test'
+    expect(wrapper.find('.msg').text()).toBe(msg)
+  })
+})
+```
+
+
+
+#### 4-1-3、HTML 结构和 DOM 属性测试
+
+有组件：
+
+```js
+<template>
+  <div class="mount">
+    <span id="span-text">哈哈哈</span>
+    <h4 id="p-text">你好</h4>
+  </div>
+</template>
+<script>
+export default {
+  data() {
+    return {
+      msg: 'hello, test'
+    }
+  }
+}
+</script>
+```
+
+测试用例：
+
+```js
+test('html', () => {
+  const html = '<span>哈哈哈</span>'
+  const wrapper = shallowMount(ComMount)
+  expect(wrapper.html()).toContain(html)
+})
+```
+
+
+
+挂载组件后返回的包装器，有 `wrapper.attributes()` 可以进行 DOM 属性测试
+
+```js
+test('dom', () => {
+  const wrapper = shallowMount(ComMount)
+
+  const h4Ele =  wrapper.find('h4')
+  expect(h4Ele.attributes().id).toBeTruthy() // 是否有 id 属性
+  expect(h4Ele.attributes().id).toBe('p-text') // id 属性是否为 span-text
+
+  // 另一种方式
+  expect(h4Ele.attributes('id')).toBeTruthy() // 是否有 id 属性
+  expect(h4Ele.attributes('id')).toBe('p-text') // id 属性是否为 span-text
+})
+```
+
+
+
+#### 4-1-4、class 和 style 测试
+
+有组件：
+
+```js
+<template>
+  <div class="mount">
+    <h4 class="p-ele" style="color: red;">你好</h4>
+  </div>
+</template>
+<script>
+export default {
+  data() {
+    return {
+      msg: 'hello, test'
+    }
+  }
+}
+</script>
+```
+
+**测试 class：**与测试 DOM 属性基本一致，只是测试 class 使用的是 `classes`
+
+```js
+test('class', () => {
+  const wrapper = shallowMount(ComMount)
+  const h4Ele =  wrapper.find('h4')
+  expect(h4Ele.classes()).toContain('p-ele')
+})
+```
+
+**测试 style：**可以使用包装器的  `element.style` 访问该 `DOM` 节点的**内联样式**
+
+```js
+test('style', () => {
+  const wrapper = shallowMount(ComMount)
+  const style = wrapper.find('h4').element.style
+  expect(style.color).toBe('red')
+})
+```
+
+
+
+#### 4-1-5、props 测试
+
+有组件：
+
+```js
+<template>
+  <div class="mount">
+    <p class="user-info">姓名：{{ name }} | 年龄：{{ age }}</p>
+  </div>
+</template>
+<script>
+export default {
+  props: ['name', 'age'],
+  data() {
+    return {
+      msg: 'hello, test'
+    }
+  }
+}
+</script>
+```
+
+测试用例：
+
+```js
+test('props', () => {
+  const wrapper = shallowMount(ComMount, {
+    propsData: {
+      name: 'jack',
+      age: 18
+    }
+  })
+
+  expect(wrapper.props('name')).toBe('jack')
+  expect(wrapper.props().age).toBe(18)
+  expect(wrapper.find('.user-info').text()).toContain('jack')
+})
+```
+
+
+
+ 
+
