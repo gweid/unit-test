@@ -5,6 +5,10 @@ import store from './store'
 
 Vue.config.productionTip = false
 
+Vue.prototype.$addFun = function(num) {
+  return num + 1
+}
+
 new Vue({
   router,
   store,

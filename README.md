@@ -164,6 +164,28 @@ test('promise async...await', async() => {
 
 
 
+### 2-4、全局挂载与卸载钩子函数
+
+有时，在执行每一个测试函数之前或者之后，需要进行一些操作，此时，就可以利用全局钩子
+
+```js
+describe('全局钩子', () => {
+  beforeEach(() => {
+     // ...在执行每一个测试用例之前调用
+  })
+
+  afterEach(() => {
+    // ...在执行每一个测试用例之后调用
+  })
+ 
+  test('', () => {})
+})
+```
+
+
+
+
+
 ## 3、`Vue` 单元测试环境搭建
 
 
@@ -509,5 +531,261 @@ test('props', () => {
 
 
 
- 
+ ### 4-2、测试组件方法
+
+
+
+#### 4-2-1、测试方法
+
+上面说过，可以通过 `wrapper.vm` 访问到组件实例上的 data、methods 等
+
+有组件：
+
+```js
+<template>
+  <div v-show="show">
+    <p>显示与隐藏</p>
+  </div>
+</template>
+<script>
+export default {
+  data() {
+    return {
+      show: false
+    }
+  },
+  methods: {
+    showHandle() {
+      this.show = true
+    },
+    hideHandle() {
+      this.show = false
+    }
+  }
+}
+</script>
+```
+
+测试用例：
+
+```js
+import { shallowMount } from '@vue/test-utils'
+import ComMethod from '../../src/components/ComMethod.vue'
+
+describe('测试组件方法', () => {
+  let wrapper
+  // jest 的钩子函数，在执行每一个测试用例之前调用
+  beforeEach(() => {
+    wrapper = shallowMount(ComMethod)
+  })
+
+  test('showHandle', async () => {
+    expect(wrapper.vm.show).toBe(false) // 一开始是 false
+    expect(wrapper.isVisible()).toBe(false) // 一开始，是隐藏状态
+
+    wrapper.vm.showHandle()
+    await wrapper.vm.$nextTick()
+
+    expect(wrapper.vm.show).toBe(true)
+    expect(wrapper.isVisible()).toBe(true)
+  })
+
+  test('hideHandle', async () => {
+    // 先将 data 中的 show 设置为 true，这个方法是异步的，需要配合 $nextTick
+    wrapper.setData({
+      show: true
+    })
+
+    await wrapper.vm.$nextTick()
+    expect(wrapper.vm.show).toBe(true)
+    expect(wrapper.isVisible()).toBe(true)
+
+    wrapper.vm.hideHandle()
+    await wrapper.vm.$nextTick()
+    expect(wrapper.vm.show).toBe(false)
+    expect(wrapper.isVisible()).toBe(false)
+  })
+})
+```
+
+- `beforeEach`： jest 的全局钩子，代表在执行每一个测试函数之前执行；这里在这个钩子函数中重新挂载组件，避免多个测试用例互相影响
+- 由于方法修改了数据，进而会触发`DOM`更新，所以需要调用组件的`$nextTick()`方法，确保获取到了正确`DOM`的状态
+- `isVisible`：判断一个`DOM`元素是否可见；也可以使用`exists()`和`v-if`指令来代替
+- `setData`：手动修改组件中`data`的值，需要注意的是它是异步的，需要配合`$nextTick()`一起使用
+
+
+
+#### 4-2-2、测试定时器
+
+如果不对定时器函数做处理，当一个组件有一个延时`1000ms`的`setTimeout`时，则意味着我们测试程序必须等待`1000ms`，如果系统中存在很多个`setTimeout`函数，那么对于以速度、高效率的单元测试来说无疑是一场灾难。
+
+此时，就可以使用`Jest.useFakeTimers`替换全局定时器函数，替换后可以使用`runTimersToTime`推进时间。
+
+
+
+有组件：
+
+```js
+<template>
+  <div>
+    <p>{{ text }}</p>
+  </div>
+</template>
+
+<script>
+export default {
+  data() {
+    return {
+      text: '',
+      count: 0,
+      timer: null
+    }
+  },
+  methods: {
+    startSetTimeout() {
+      setTimeout(() => {
+        this.text = 'test setTimeout'
+      }, 5000)
+    },
+    start() {
+      this.timer = setInterval(() => {
+        this.count++
+        if(this.count > 10) {
+          this.stop()
+        }
+      }, 1000)
+    },
+    stop() {
+      clearInterval(this.timer)
+    }
+  }
+}
+</script>
+```
+
+测试用例：
+
+```js
+import { shallowMount } from '@vue/test-utils'
+import ComTimer from '../../src/components/ComTimer.vue'
+
+describe('测试setTimeout', () => {
+  let wrapper
+  beforeEach(() => {
+    wrapper = shallowMount(ComTimer)
+    jest.useFakeTimers() // 使用 Jest.useFakeTimers 替换全局定时器函数
+  })
+
+  test('setTimeout', () => {
+    expect(wrapper.vm.text).toBe('')
+    wrapper.vm.startSetTimeout()
+    jest.runTimersToTime(5000) // 向前推进 5000ms
+    expect(wrapper.vm.text).toBe('test setTimeout')
+  })
+
+  test('setInterval', () => {
+    expect(wrapper.vm.count).toBe(0)
+    wrapper.vm.start()
+    jest.runTimersToTime(1000) // 向前推进 1000ms
+    expect(wrapper.vm.count).toBe(1)
+    jest.runTimersToTime(9000) // 向前推进 9000ms
+    expect(wrapper.vm.count).toBe(10)
+  })
+})
+```
+
+测试 `setTimeout` 可以直接推进到结束，测试 `setInterval` 分段推进
+
+
+
+测试 `clearInterval` 是否成功：
+
+- 使用`Jest`提供的`jest.spyOn()`来创建一个 `spy`，使用 `toHaveBeenCalled` 匹配器来检测 `spy` 是否被调用，更进一步地可以使用 `toHaveBeenCalledWith` 匹配器测试 `spy` 是否带有指定参数被调用
+- 使用 `Jest` 提供的 `mockReturnValue` 函数模拟任何想要的返回值
+
+```js
+import { shallowMount } from '@vue/test-utils'
+import ComTimer from '../../src/components/ComTimer.vue'
+
+describe('测试setTimeout', () => {
+  let wrapper
+  beforeEach(() => {
+    wrapper = shallowMount(ComTimer)
+    jest.useFakeTimers() // 使用 Jest.useFakeTimers 替换全局定时器函数
+  })
+
+  test('clearInterval', () => {
+    jest.spyOn(window, 'clearInterval')
+    setInterval.mockReturnValue(123)
+    wrapper.vm.start()
+    wrapper.vm.stop()
+    expect(window.clearInterval).toHaveBeenCalledWith(123)
+  })
+})
+```
+
+
+
+#### 4-2-3、模拟添加属性
+
+在 `Vue` 中，经常会为 `Vue` 实例添加一些属性或者方法，例如：
+
+```js
+Vue.prototype.$addFun = function(num) {
+  return num + 1
+}
+```
+
+那么可以使用 `mocks` 对这些属性或者方法进行单元测试
+
+有组件：
+
+```js
+<template>
+  <div>
+    <p>{{ count }}</p>
+    <button @click="onClick">点击</button>
+  </div>
+</template>
+
+<script>
+export default {
+  data() {
+    return {
+      count: 0
+    }
+  },
+  methods: {
+    onClick() {
+      this.count = this.$addFun(this.count)
+    }
+  }
+}
+</script>
+```
+
+测试用例：
+
+```js
+import { shallowMount } from '@vue/test-utils'
+import AddPrototype from '../../src/components/AddPrototype.vue'
+
+describe('AddPrototype.vue', () => {
+  test('prototype', () => {
+    const wrapper = shallowMount(AddPrototype, {
+      mocks: {
+        $addFun: jest.fn((num) => num + 1)
+      }
+    })
+
+    const count = wrapper.vm.count
+    wrapper.vm.onClick()
+    expect(wrapper.vm.count).toBe(count + 1)
+  })
+})
+```
+
+通过 `mocks` 模拟了 `Vue.prototype` 上的 `$addFun`
+
+
 
