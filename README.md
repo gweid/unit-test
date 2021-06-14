@@ -789,7 +789,7 @@ describe('AddPrototype.vue', () => {
 
 
 
-### 4-3、挂载选项和改变组件状态
+### 4-3、挂载选项
 
 在上面的例子中，已经尝试过在挂载组件的时候，提供 `props` 和 `mocks` 属性：
 
@@ -908,4 +908,75 @@ test('slot', () => {
 
 
 #### 4-3-3、挂载第三方插件
+
+在开发 `Vue` 应用的时候，经常用到第三方插件，例如：`Vue-Router`、`Vuex` 等等。
+
+可以使用 `createLocalVue()` 方法创建一个本地的 `Vue` 实例，用来替换全局的 `Vue`，随后在挂载组件的时候传递这个本地 `Vue`，这样子可以防止污染全局 `Vue`
+
+```js
+import { shallowMount, createLocalVue } from '@vue/test-utils'
+import RenderOpt from '../../src/components/RenderOpt.vue'
+import Router from 'vue-router'
+import Vuex from 'vuex'
+
+const localVue = createLocalVue()
+localVue.use(Vuex)
+localVue.use(Router)
+
+describe('RenderOpt.vue', () => {
+  test('localVue', () => {
+    const wrapper = shallowMount(RenderOpt, {
+      localVue
+    })
+  })
+})
+```
+
+
+
+### 4-4、改变组件状态
+
+挂载组件之后，可以通过一下方法改变组件状态：
+
+- `setProps`：设置包裹器的`vm`实例中`props`并更新
+
+- `setData`：设置包裹器中`vm`实例中的`data`并更新
+
+- `setChecked`：设置`checkbox`或者`radio`元素的`checked`的值并更新`v-model`
+
+- `setSelected`：设置一个`option`元素并更新`v-model`
+
+- `setValue`：设置一个文本控件或`select`元素的值并更新`v-model`
+
+需要注意的是：`Vue` 是异步更新数据，通过这些 set 方法改变数据后，需要通过`$nextTick` 获取更新后的 DOM
+
+```js
+test('hideHandle', async () => {
+    const wrapper = shallowMount(RenderOp)
+
+    // 先将 data 中的 show 设置为 true，这个方法是异步的，需要配合 $nextTick
+    wrapper.setData({
+      show: true
+    })
+
+    await wrapper.vm.$nextTick()
+    expect(wrapper.vm.show).toBe(true)
+})
+```
+
+
+
+### 4-5、测试事件
+
+
+
+#### 4-5-1、原生 DOM 事件
+
+在`Vue-Test-Utils`中，每个包装器都有一个`trigger`方法，用于分发事件；
+
+常见的原生事件有：点击 `click`事件，鼠标事件 `mouseenter` 事件、键盘事件 `keyup/keydown`事件、表单提交事件 `submit` 等
+
+
+
+有组件：
 
