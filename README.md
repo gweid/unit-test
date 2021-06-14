@@ -1187,3 +1187,135 @@ describe('FiltersAndMixins.vue', () => {
 })
 ```
 
+
+
+### 4-7、测试 `Vue-Router`
+
+当 `Vue-Router` 被安装到 `Vue` 以后，会往 `Vue` 上添加两个实例属性：
+
+- `$route`： 路由参数
+- `$router`：路由实例
+
+对于这种直接挂载到 `vue` 上的属性，最好的测试方法就是通过模拟 `mocks`
+
+
+
+#### 4-7-1、测试 `$route`
+
+有组件：
+
+```js
+<template>
+  <div>
+    <p class="route">{{ $route.query.name }}</p>
+  </div>
+</template>
+
+<script>
+export default {
+  data() {
+    return {}
+  }
+}
+</script>
+```
+
+测试用例：
+
+```js
+import { shallowMount } from '@vue/test-utils'
+import TestRouter from '../../src/components/TestRouter.vue'
+
+describe('TestRouter.vue', () => {
+  let $route
+  beforeEach(() => {
+    $route = {
+      query: {
+        name: 'jack'
+      }
+    }
+  })
+
+  test('$route', () => {
+    const wrapper = shallowMount(TestRouter, {
+      mocks: {
+        $route
+      }
+    })
+
+    expect(wrapper.find('.route').text()).toBe('jack')
+  })
+
+  test('changeRoute', () => {
+    $route.query.name = 'mark'
+    const wrapper = shallowMount(TestRouter, {
+      mocks: {
+        $route
+      }
+    })
+
+    expect(wrapper.find('.route').text()).toBe('mark')
+  })
+})
+```
+
+
+
+#### 4-7-2、测试 `$router`
+
+有组件：
+
+```js
+<template>
+  <div>
+    <button @click="btnClick">跳转</button>
+  </div>
+</template>
+
+<script>
+export default {
+  data() {
+    return {}
+  },
+  methods: {
+    btnClick() {
+      this.$router.push('/user')
+    }
+  }
+}
+</script>
+```
+
+测试用例：
+
+```js
+import { shallowMount } from '@vue/test-utils'
+import TestRouter from '../../src/components/TestRouter.vue'
+
+describe('TestRouter.vue', () => {
+  let $route
+  let $router
+  beforeEach(() => {
+    $router = {
+      push: jest.fn()
+    }
+  })
+
+  test('$router', () => {
+    const wrapper = shallowMount(TestRouter, {
+      mocks: {
+        $route,
+        $router
+      }
+    })
+
+    wrapper.vm.btnClick()
+    expect($router.push).toHaveBeenCalled() // 判断 $router.push 是否触发
+  })
+})
+```
+
+- `toHaveBeenCalled`： 用来判断是否被触发
+
+
+
