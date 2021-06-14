@@ -789,3 +789,123 @@ describe('AddPrototype.vue', () => {
 
 
 
+### 4-3、挂载选项和改变组件状态
+
+在上面的例子中，已经尝试过在挂载组件的时候，提供 `props` 和 `mocks` 属性：
+
+```js
+const wrapper = shallowMount(AddPrototype, {
+    props: {
+      name: 'jack'
+    },
+    mocks: {
+      $addFun: jest.fn((num) => num + 1)
+    }
+})
+```
+
+除了这两个，还可以挂载一些其他选项：
+
+- `data`：在挂载阶段提供的`data`中的属性，会被合并、覆盖到当前组件的`data`中
+- `slots`：如果被挂载的组件有插槽内容，那么可以通过 `slots` 提供
+- `localVue`：提供一个本地的`Vue`实例，防止污染全局的`Vue`，这在使用第三方插件：`Vue-Router`、`Vuex`和`element-ui`等非常适用
+
+
+
+#### 4-3-1、挂载 data 选项
+
+有组件：
+
+```js
+<template>
+  <div>
+    <p>{{ name }}</p>
+  </div>
+</template>
+
+<script>
+export default {
+  data() {
+    return {
+      name: 'jack'
+    }
+  }
+}
+</script>
+```
+
+测试用例：
+
+```js
+import { shallowMount } from '@vue/test-utils'
+import RenderOpt from '../../src/components/RenderOpt.vue'
+
+describe('RenderOpt.vue', () => {
+  test('data', () => {
+    const wrapper = shallowMount(RenderOpt, {
+      data() {
+        return {
+          name: 'mark',
+          age: 25
+        }
+      }
+    })
+    expect(wrapper.vm.name).toBe('mark')
+    expect(wrapper.vm.age).toBe(25)
+  })
+})
+```
+
+
+
+#### 4-3-2、挂载 slot 选项
+
+有组件：
+
+```js
+<template>
+  <div>
+    <div class="default-slot">
+      <slot />
+    </div>
+    <div class="last-slot">
+      <slot name="last" />
+    </div>
+  </div>
+</template>
+
+<script>
+export default {
+  data() {
+    return {
+    }
+  }
+}
+</script>
+```
+
+测试用例：
+
+```js
+test('slot', () => {
+    const defaultSlot = {
+      template: `<div>default slot</div>`
+    }
+    const lastSlot = {
+      template: `<div>last slot</div>`
+    }
+    const wrapper = shallowMount(RenderOpt, {
+      slots: {
+        default: defaultSlot,
+        last: lastSlot
+      }
+    })
+    expect(wrapper.find('.default-slot').html()).toContain(defaultSlot.template)
+    expect(wrapper.find('.last-slot').html()).toContain(lastSlot.template)
+})
+```
+
+
+
+#### 4-3-3、挂载第三方插件
+
