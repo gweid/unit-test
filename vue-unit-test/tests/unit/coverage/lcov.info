@@ -78,11 +78,11 @@ TN:
 SF:G:\unit-test\vue-unit-test\src\components\RenderOpt.vue
 FN:15,(anonymous_1)
 FNF:1
-FNH:0
-FNDA:0,(anonymous_1)
-DA:16,0
+FNH:1
+FNDA:1,(anonymous_1)
+DA:16,1
 LF:1
-LH:0
+LH:1
 BRF:0
 BRH:0
 end_of_record
