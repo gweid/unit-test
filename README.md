@@ -980,3 +980,210 @@ test('hideHandle', async () => {
 
 有组件：
 
+```js
+<template>
+  <div>
+    <p>{{ count }}</p>
+    <button class="btn1" @click="addCount">count++</button>
+  </div>
+</template>
+
+<script>
+export default {
+  data() {
+    return {
+      count: 0
+    }
+  },
+  methods: {
+    addCount() {
+      this.count++
+    }
+  }
+}
+</script>
+```
+
+测试用例：
+
+```js
+import { shallowMount } from '@vue/test-utils'
+import TestEven from '../../src/components/TestEven.vue'
+
+describe('TestEven.vue', () => {
+  test('dom even', () => {
+    const wrapper = shallowMount(TestEven)
+    const btn = wrapper.find('.btn1')
+    expect(wrapper.vm.count).toBe(0)
+    btn.trigger('click')
+    expect(wrapper.vm.count).toBe(1)
+  })
+})
+```
+
+
+
+#### 4-5-2、自定义事件
+
+`VUE`自定义事件：在子组件中发射一个事件：
+
+```js
+// son.vue
+this.$emit('eventName', payload);
+```
+
+父组件接收：
+
+```js
+// father.vue
+<son @eventName='handleEvent'></son>
+```
+
+
+
+比如，有子组件：
+
+```js
+<template>
+  <div>
+    <button @click="onClick">change</button>
+  </div>
+</template>
+
+<script>
+export default {
+  data() {
+    return {}
+  },
+  methods: {
+    onClick() {
+      this.$emit('changeClick', 'child')
+    }
+  }
+}
+</script>
+```
+
+父组件：
+
+```js
+<template>
+  <div>
+    <child-com @changeClick="handleChange" />
+  </div>
+</template>
+
+<script>
+import ChildCom from './ChildCom.vue'
+export default {
+  components: {
+    ChildCom
+  },
+  data() {
+    return {
+      param: ''
+    }
+  },
+  methods: {
+    handleChange(param) {
+      this.param = param
+    }
+  }
+}
+</script>
+```
+
+测试用例：
+
+```js
+import { mount } from '@vue/test-utils'
+import TestEven from '../../src/components/TestEven.vue'
+import ChildCom from '../../src/components/ChildCom.vue'
+
+describe('TestEven.vue', () => {
+  test('custom even', () => {
+    const wrapper = mount(TestEven)
+    expect(wrapper.vm.param).toBe('')
+    wrapper.findComponent(ChildCom).vm.$emit('changeClick', 'child')
+    expect(wrapper.vm.param).toBe('child')
+  })
+})
+```
+
+- `mount` ：将子组件一起挂载
+- `findComponent`：找到对应的组件
+
+
+
+### 4-6、测试 filters 和 mixins
+
+测试 `filters` 与 `mixins` 很简单。在代码中使用 `filters` 和 `mixins`，挂载组件，然后检测 `filters` 、`mixins` 是否产生了预期的行为
+
+
+
+有 `mixins` ：
+
+```js
+export default {
+  data() {
+    return {
+      msg: ''
+    }
+  },
+  mounted() {
+    this.msg = 'hello'
+  }
+}
+```
+
+有组件：
+
+```js
+<template>
+  <div>
+    <p class="filter">{{ price | formatPrice }}</p>
+    <p class="msg">{{ msg }}</p>
+  </div>
+</template>
+
+<script>
+import testMixin from '../mixins/testMixin'
+
+export default {
+  mixins: [testMixin],
+  data() {
+    return {
+      price: 10,
+    }
+  },
+  filters: {
+    formatPrice(price) {
+      return price.toFixed(2)
+    }
+  }
+}
+</script>
+```
+
+测试用例：
+
+```js
+import { shallowMount } from '@vue/test-utils'
+import FiltersAndMixins from '../../src/components/FiltersAndMixins.vue'
+
+describe('FiltersAndMixins.vue', () => {
+  let wrapper
+  beforeEach(() => {
+    wrapper = shallowMount(FiltersAndMixins)
+  })
+
+  test('filters', () => {
+    expect(wrapper.find('.filter').text()).toBe('10.00')
+  })
+
+  test('mixins', () => {
+    expect(wrapper.find('.msg').text()).toBe('hello')
+  })
+})
+```
+
