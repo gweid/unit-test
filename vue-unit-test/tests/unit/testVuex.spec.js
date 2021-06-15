@@ -52,7 +52,7 @@ describe('组合测试 store', () => {
       name: 'jack'
     },
     getters: {
-      getName: jest.fn()
+      getName: state => state.name
     },
     mutations: {
       setName: jest.fn()
@@ -71,10 +71,13 @@ describe('组合测试 store', () => {
 
     // 测试 state
     expect(wrapper.find('.state').text()).toBe('jack')
-    // 测试 getters
+    // 测试 getters，需要关心的是 getters 执行后的结果是否符合期望
     expect(wrapper.find('.getter').text()).toBe('jack')
-    // 测试 mutations
-    // wrapper.vm.setNameMutation()
-    // expect(store.mutations.setName).toHaveBeenCalled()
+    // 测试 mutations，仅仅关心 mutations 函数是否被调用，而不用太关心内部逻辑
+    wrapper.vm.setNameMutation()
+    expect(storeConfig.mutations.setName).toHaveBeenCalled()
+    // 测试 actions，仅仅关心 actions 函数是否被调用，而不用太关心内部逻辑
+    wrapper.vm.setNameAction()
+    expect(storeConfig.actions.setName).toHaveBeenCalled()
   })
 })

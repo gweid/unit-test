@@ -1321,6 +1321,10 @@ describe('TestRouter.vue', () => {
 
 ### 4-8、测试 `Vuex`
 
+可以参考：[Vuex 之单元测试](https://blog.csdn.net/tonylua/article/details/103750356)
+
+
+
 测试 `Vuex` 的方法主要有：
 
 - 单独测试 `store` 中的每一个部分：把 `store` 中的 `mutations`、`actions` 和`getters` 单独划分，分别进行测试
@@ -1453,4 +1457,99 @@ describe('testVuex', () => {
 #### 4-8-2、组合测试 `store`
 
 组合测试 `store` 需要注意的点是，使用 `createLocalVue()` 方法创建一个本地的 `Vue` 实例，而不是全局 `Vue` 上挂载的 `Vuex`，因为使用全局的 `Vue` 会导致单元测试修改了程序的 store
+
+
+
+有组件：
+
+```js
+<template>
+  <div>
+    <p class="state">{{ $store.state.name }}</p>
+    <p class="getter">{{ getName }}</p>
+    <button class="mutation" @click="setNameMutation">mutation</button>
+    <button class="action" @click="setNameAction">action</button>
+  </div>
+</template>
+
+<script>
+import { mapGetters, mapMutations, mapActions } from "vuex"
+
+export default {
+  data() {
+    return {
+      
+    }
+  },
+  methods: {
+    ...mapMutations({
+      mSetName: 'setName'
+    }),
+    ...mapActions({
+      aSetName: 'setName'
+    }),
+    setNameMutation() {
+      this.mSetName('mark')
+    },
+    setNameAction() {
+      this.aSetName('marry')
+    }
+  },
+  computed: {
+    ...mapGetters(['getName'])
+  }
+}
+</script>
+```
+
+测试用例：
+
+```js
+import { shallowMount, createLocalVue } from '@vue/test-utils'
+import Vuex from 'vuex'
+import TestVuex from '../../src/components/TestVuex.vue'
+
+const localVue = createLocalVue()
+localVue.use(Vuex)
+
+const storeConfig = {
+    state: {
+      name: 'jack'
+    },
+    getters: {
+      getName: state => state.name
+    },
+    mutations: {
+      setName: jest.fn()
+    },
+    actions: {
+      setName: jest.fn()
+    }
+}
+const store = new Vuex.Store(storeConfig)
+
+
+describe('组合测试 store', () => {
+  test('store', () => {
+    const wrapper = shallowMount(TestVuex, {
+      store,
+      localVue
+    })
+
+    // 测试 state
+    expect(wrapper.find('.state').text()).toBe('jack')
+    // 测试 getters，需要关心的是 getters 执行后的结果是否符合期望
+    expect(wrapper.find('.getter').text()).toBe('jack')
+    // 测试 mutations，仅仅关心 mutations 函数是否被调用，而不用太关心内部逻辑
+    wrapper.vm.setNameMutation()
+    expect(storeConfig.mutations.setName).toHaveBeenCalled()
+    // 测试 actions，仅仅关心 actions 函数是否被调用，而不用太关心内部逻辑
+    wrapper.vm.setNameAction()
+    expect(storeConfig.actions.setName).toHaveBeenCalled()
+  })
+})
+```
+
+- 对于 `state` 与 `getter` 的测试，需要关心的是他们的结果是否符合期望
+- 对于 `mutation` 与 `action` 的测试，更多的是关心他们是否被调用，而不去关心内部实现的逻辑
 

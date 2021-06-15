@@ -2,8 +2,8 @@
   <div>
     <p class="state">{{ $store.state.name }}</p>
     <p class="getter">{{ getName }}</p>
-    <!-- <button class="mutation" @click="setNameMutation">mutation</button>
-    <button class="action" @click="setNameAction">action</button> -->
+    <button class="mutation" @click="setNameMutation">mutation</button>
+    <button class="action" @click="setNameAction">action</button>
   </div>
 </template>
 
